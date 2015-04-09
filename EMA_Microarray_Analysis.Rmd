@@ -9,13 +9,28 @@ output: html_document
 
 Read in descriptive data file and run summary statistics to examine the distribution of the data prior to importing CEL files
 
-```{r, cache=TRUE, results='markup'}
+```{r, cache=TRUE, results='markup', message=FALSE}
+options(width=500)
 ## Load EMA and oligo libraries
 library(EMA)
 library(oligo)
 
 ## Read in descriptive data file
 PBHI.file.info = read.table(file = "./data/PHBI cel annotation BIO6660 v2.txt", header = T, sep = "\t")
-head(PBHI.file.info)
+print(PBHI.file.info)
 ```
 
+We will use the "Clinical.Category" column to define the 2 comparing groups
+
+```{r, cache=TRUE, results='markup', message=FALSE}
+## Extract groups: IPAH and Failed Donor
+PBHI.type.cl = as.character(PBHI.file.info$Clinical.Category)
+PBHI.type.cl
+```
+
+We suspect there might be batch-effect.  We will use the "Batch" column to extract potential batch-effect information
+
+```{r, cache=TRUE, results='markup', message=FALSE}
+PBHI.batch.cl = PBHI.file.info$Batch
+PBHI.batch.cl
+```
