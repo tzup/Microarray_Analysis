@@ -9,7 +9,7 @@ output: html_document
 
 Read in descriptive data file and run summary statistics to examine the distribution of the data prior to importing CEL files
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, results='markup'}
 ## Load EMA and oligo libraries
 library(EMA)
 library(oligo)
