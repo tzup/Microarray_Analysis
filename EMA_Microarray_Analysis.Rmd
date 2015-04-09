@@ -113,8 +113,191 @@ hist(PHBI.norm, col = color.palette, main = "Normalized Density Plot of log-Inte
 
 ```
 
+### Filtering Process
+
+Extract normalized expression values and perform filtering to discard probesets below a specified threshold
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Extract expression values after normalization, verify dimensions
+PHBI.exprs = exprs(PHBI.norm)
+dim(PHBI.exprs)
+
+## Filter and discard probesets with a maximum log2 expression value below 4,
+## p=0.01
+PUBHI.f = expFilter(PHBI.exprs, threshold = 4)
+
+## View data ditribution after filtering; remove threshold line
+PUBHI.A = expFilter(PUBHI.f, threshold = F)
+```
+
+### Hierarchical Clustering
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+PUBHI.sample = clustering(data = PUBHI.f, metric = "pearson", method = "ward")
+
+## Visualize data pre and post filtering
+clustering.plot(tree = PUBHI.sample, lab = PBHI.type.cl, title = "Filtered Data")
+
+clustering.plot(tree = PUBHI.sample, lab = PBHI.batch.cl, title = "Filtered PBHI Data by Batch")
+```
+
+### Principal Component Analysis
+
+Run Principle Component Analysis (PCA) on the normalized and filtered data
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Segment variation into different components
+acp = runPCA(t(PUBHI.f), scale = FALSE, lab.sample = PBHI.type.cl, plotSample = FALSE, 
+    plotInertia = FALSE)
+plotInertia(acp)
+
+## View pre-batch correction individual maps (axes 1 and 2) to look at the
+## variation between groups and batches
+plotSample(acp, axes = c(1, 2), lab = PBHI.type.cl)
+
+plotSample(acp, axes = c(1, 2), lab = as.character(PBHI.batch.cl))
+
+## Create pdf report of PCA with selected plots
+acp = runPCA(t(PUBHI.f), scale = FALSE, pdfname = "PCA.pdf", lab.sample = PBHI.type.cl)
+
+```
+
+### Batch Correction
+
+Perform batch correction on the normalized data and re-run PCA to show post-batch correction improvements
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+# Load sva library
+library(sva)
+
+## Create experimental design object and perform batch correction
+mod = model.matrix(~as.factor(PBHI.type.cl))
+combat_edata = ComBat(dat = PUBHI.f, batch = PBHI.batch.cl, mod = mod, numCovs = NULL, 
+    par.prior = TRUE, prior.plots = FALSE)
+```
+
+Run PCA and Hierarchical Clustering again after batch adjustment
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Run PCA after batch correction
+acp = runPCA(t(combat_edata), scale = FALSE, lab.sample = PBHI.type.cl, plotSample = FALSE, plotInertia = FALSE)
+plotInertia(acp)
+
+## View post-batch correction individual maps (axes 1 and 2) to look at the
+## variation between groups and batches
+plotSample(acp, axes = c(1, 2), lab = PBHI.type.cl)
+
+plotSample(acp, axes = c(1, 2), lab = PBHI.batch.cl)
+
+## Sample Hierarchical Clustering (post-batch adjustment)
+PUBHI.sample2 = clustering(data = combat_edata, metric = "pearson", method = "ward")
+clustering.plot(tree = PUBHI.sample2, lab = PBHI.type.cl, title = "PHBI Data - Filtered")
+clustering.plot(tree = PUBHI.sample2, lab = PBHI.batch.cl, title = "PHBI Data By Batch - Filtered")
+```
+
+## Statistical Analysis
+
+Run Student's t-test and Significance of Analysis of Microarrays (SAM) test on normalized data. Merge the test results into one data set to produce a heatmap
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Set-up Student's t-test comparison factor
+PUBHI.type.num = ifelse(PBHI.type.cl == "IPAH", 0, 1)
+
+## Run Student's t-test with batch corrected data
+PUBHI.ttest = runTtest(combat_edata, labels = PUBHI.type.num, algo = "t.equalvar", 
+    q = 0.2, plot = FALSE)
+
+## head(PUBHI.ttest)
+knitr::kable(head(PUBHI.ttest))
+
+## Run the SAM test with batch corrected data
+PUBHI.SAM = runSAM(PUBHI.f, labels = PUBHI.type.num)
+
+knitr::kable(head(PUBHI.SAM))
+
+```
+Reorganize the result 
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Sort genes in both datasets by the 'probeID' variable
+PUBHI.ttest.sig = PUBHI.ttest[order(PUBHI.ttest$probeID), ]
+PUBHI.SAM.sig = PUBHI.SAM[order(PUBHI.SAM$probeID), ]
+
+## Extract the 'probeID' and 'FoldChange' variables from the PBHI.SAM.sig
+## data set
+FC.raw = PUBHI.SAM.sig[, c("probeID", "FoldChange")]
+
+## Merge the 'FoldChange' Variable into PUBHI.ttest.sig database by probeID
+PUBHI.test.merge = merge(PUBHI.ttest.sig, FC.raw, by = "probeID", all.y = TRUE, 
+    all.x = TRUE)
+knitr::kable(head(PUBHI.test.merge))
+
+## Re-sort merged data by the 'AdjpValue' variable
+PUBHI.test.merge = PUBHI.test.merge[order(PUBHI.test.merge$AdjpValue), ]
+knitr::kable(head(PUBHI.test.merge))
+
+```
+
+### Volcano Plot
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Produce a volcano Plot to verify SAM findings
+volcano = ggplot(data = PUBHI.test.merge, aes(x = log2(PUBHI.test.merge$FoldChange), 
+    y = -log10(PUBHI.test.merge$AdjpValue)), colour = none) + geom_point(alpha = 0.4, 
+    size = 1.75) + labs(title = "PAH Volcano Plot") + xlim(c(-2, 2)) + ylim(c(0, 
+    2)) + xlab("Log2 Fold Change") + ylab("-Log10 P-Values")
+volcano
+```
+
+## Output Analysis Result
+
+Produce a heatmap of the top 100 significant genes
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Produce Heatmap
+mvgenes = as.character(PUBHI.test.merge$probeID[1:100])
+c.sample <- clustering(data = PUBHI.f[mvgenes, ], metric = "pearson", method = "ward")
+c.gene <- clustering(data = t(PUBHI.f[mvgenes, ]), metric = "pearson", method = "ward")
+clustering.plot(tree = c.sample, tree.sup = c.gene, data = PUBHI.f[mvgenes, 
+    ], names.sup = FALSE, lab = PBHI.type.cl, trim.heatmap = 0.99)
+
+```
 
 
+### Annotate Significant Genes
+
+Annotate the top 250 significant genes, output to a text file. Input cluster analysis output from DAVID and print the first three rows
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+options(width = 500)
+## Load annaffy and hugene10sttranscriptcluster.db libraries
+library(annaffy)
+library(hugene10sttranscriptcluster.db)
+
+## Annotate the top 250 significant genes
+anntable = aafTableAnn(as.character(PUBHI.test.merge$probeID[1:250]), "hugene10sttranscriptcluster.db")
+
+## Add the 'AdjpValue' and 'FoldChange' variables to the annotation table
+atable = aafTable(`P-Value` = PUBHI.test.merge$AdjpValue[1:250], signed = TRUE)
+FCtable = aafTable(`Fold Change` = PUBHI.test.merge$FoldChange[1:250], signed = TRUE)
+table = merge(anntable, atable)
+table2 = merge(table, FCtable)
+
+## Export results to an HTML and text file
+saveHTML(table2, file = "PBHI.psig.genes.htm")
+saveText(table2, file = "PBHI.psig.genes.txt")
+
+## Print top 7 significant genes at p ≤ 0.01 level
+#annot.output = read.table(file = "annot.sig.txt", header = T, sep = "\t", nrows = 7)
+#annot.outputs = annot.output[order(annot.output$P.Value), ]
+#knitr::kable(annot.outputs)
+```
+
+R session info
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+sessionInfo()
+```
 
 
 
