@@ -2,7 +2,9 @@
 title: "EMA_Microarray_Analysis"
 author: "Tzu L. Phang"
 date: "April 9, 2015"
-output: html_document
+output:
+  pdf_document:
+    latex_engine: lualatex
 ---
 
 ## Experimental Design
