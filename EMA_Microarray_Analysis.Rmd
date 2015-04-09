@@ -9,7 +9,7 @@ output: html_document
 
 Read in descriptive data file and run summary statistics to examine the distribution of the data prior to importing CEL files
 
-```{r, cache=TRUE, results='markup', message=FALSE}
+```{r, cache=TRUE, results='asis', message=FALSE}
 options(width=500)
 ## Load EMA and oligo libraries
 library(EMA)
@@ -17,7 +17,8 @@ library(oligo)
 
 ## Read in descriptive data file
 PBHI.file.info = read.table(file = "./data/PHBI cel annotation BIO6660 v2.txt", header = T, sep = "\t")
-print(PBHI.file.info)
+## print(PBHI.file.info)
+knitr::kable(PBHI.file.info)
 ```
 
 We will use the "Clinical.Category" column to define the 2 comparing groups
@@ -30,7 +31,99 @@ PBHI.type.cl
 
 We suspect there might be batch-effect.  We will use the "Batch" column to extract potential batch-effect information
 
-```{r, cache=TRUE, results='markup', message=FALSE}
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
 PBHI.batch.cl = PBHI.file.info$Batch
 PBHI.batch.cl
 ```
+
+What is the average age for the 2 groups of patients
+
+```{r, cache=TRUE, results='markup', message=FALSE}
+## Run basic summary statistics
+tapply(PBHI.file.info$Age, PBHI.file.info$Clinical.Category, mean)
+```
+
+What is the gender distribution
+
+```{r, cache=TRUE, results='markup', message=FALSE}
+tapply(PBHI.file.info$Sex, PBHI.file.info$Clinical.Category, summary)
+```
+
+### Visualize Age Distribution by Group
+
+```{r, cache=TRUE, results='markup', message=FALSE}
+library(ggplot2)
+
+plot = ggplot(PBHI.file.info, aes(factor(PBHI.file.info$Clinical.Category), 
+    PBHI.file.info$Age)) + geom_boxplot(aes(fill = factor(PBHI.file.info$Clinical.Category))) + 
+    labs(title = "Age Distributions by PAH Group") + xlab("Group") + ylab("Age")
+plot + scale_fill_manual("PAH Group", values = c("#56B4E9", "#009E73"))
+```
+
+## Preprocessing and Quality Assessemnt
+
+### Import CEL files
+
+Import CEL files, read in data, and normalize data using the RMA function
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE, }
+## Import CEL files
+PBHI.CEL = PBHI.file.info$PBHI.CEL
+PBHI.CEL = list.celfiles('./data')
+PBHI.CEL = paste('./data/', PBHI.CEL, sep = '')
+
+## Read CEL files to directory
+PHBI.data = read.celfiles(PBHI.CEL, verbose = F)
+
+## Normalize the data
+PHBI.norm = rma(PHBI.data)
+```
+
+
+### Visual Inspection: Before and After Data Normalization
+
+Create boxplots of log-intensity distribution to visualize data pre and post normalization
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Load color libraries
+library(RColorBrewer)
+
+## Set color palette
+color.palette = brewer.pal(8, "Set1")
+
+
+## Pre-normalized intensity values boxplot
+boxplot(PHBI.data, col = color.palette, main = "Pre-normalized Intensity Values")
+
+## Normalized intensity values boxplot
+boxplot(PHBI.norm, col = color.palette, main = "Normalized Intensity Values")
+
+
+```
+
+
+Create density plots of log-intensity distribution to visualize data pre and post normalizatio
+
+```{r, cache=TRUE, results='markup', message=FALSE, warning=FALSE}
+## Pre-normalized density plot of log-intensity distribution
+hist(PHBI.data, col = color.palette, main = "Pre-Normalized Density Plot of log-Intensity Distribution")
+
+## Normalized density plot of log-intensity distribution
+hist(PHBI.norm, col = color.palette, main = "Normalized Density Plot of log-Intensity Distribution")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
