@@ -6,8 +6,27 @@ output:
   pdf_document:
     latex_engine: lualatex
 ---
+# Idiopathic Pulmonary Arterial Hypertension Gene Expression Analysis
+
+## Background
+
+- Pulmonary Hypertension (PH) is a rare disease marked by abnormally high blood pressure in the arteries of the lungs. Pulmonary Arterial Hypertension (PAH) is a form of PH which causes increased stress to the heart and causes a rise in blood pressure within the lungs [1-2]. PAH is more common in females than males [3] and symptoms of PAH present earlier in life (30-40 years of age) rather than later (40-50 years of age).
+- There is no known cure for PAH at this time. PAH is most commonly treated with medications designed to reduce the work of the heart. In addition to medication, PAH is treated surgically with an atrial septostomy or through a lung transplant [3]. If left untreated, PAH results in serious illness or death, thus it is crucial to gain a better understanding of the disease [2].
+- Of the four different types of PAH patients, this analysis utilizes samples collected from patients with Idiopathic Pulmonary Arterial Hypertension. This type of PAH occurs in individuals with no family history of the disease; there is no known genetic mutation [4].
+- The purpose of the study is to gain genetic insight to better understand potential genetic causes of disease.
+- The goal of the current analysis is to identify and examine the gene expression signature for IPAH patients compared to the controls (Failed Donors; FD).
+
+### References:
+1. Pulmonary hypertension. American Heart Association. http://www.heart.org/HEARTORG/Conditions/CongenitalHeartDefects/TheImpactofCongenitalHeartDefects/Pulmonary-Hypertension_UCM_307044_Article.jsp
+2. Pulmonary arterial hypertension. American Lung Association. http://www.lung.org/lung-disease/pulmonary-arterial-hypertension/
+3. Rajkumar, R., Konishi, K., Richards, T. J., Ishizawar, D. C., Wiechert, A. C., Kaminski, N., & Ahmad, F. (2010). Genomewide RNA expression profiling in lung identifies distinct signatures in idiopathic pulmonary arterial hypertension and secondary pulmonary hypertension. American Journal of Physiology-Heart and Circulatory Physiology, 298(4), H1235.
+4. Pulmonary arterial hypertension. Genetics Home Reference. http://ghr.nlm.nih.gov/condition=pulmonaryarterialhypertension
+
+
 
 ## Experimental Design
+
+Made some changes on April 29, 2015, push again .... !!?
 
 Read in descriptive data file and run summary statistics to examine the distribution of the data prior to importing CEL files
 
